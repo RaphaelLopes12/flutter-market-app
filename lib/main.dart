@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/login',
+      home: SplashScreen(),
       routes: {
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
@@ -25,6 +26,39 @@ class MyApp extends StatelessWidget {
           return MainScreen(token: args['token']);
         },
       },
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  Future<void> _checkLogin() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+
+    if (token != null) {
+      Navigator.pushReplacementNamed(context, '/main', arguments: {'token': token});
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogin();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }
@@ -40,28 +74,44 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  late List<Widget> _pages;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      ProductsScreen(token: widget.token),
-      ProfileScreen(token: widget.token),
-    ];
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  void _onItemTapped(int index) {
+    _pageController.jumpToPage(index);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: [
+          ProductsScreen(token: widget.token),
+          ProfileScreen(token: widget.token),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: _onItemTapped,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),

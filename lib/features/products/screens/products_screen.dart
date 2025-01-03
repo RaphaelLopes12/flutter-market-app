@@ -159,79 +159,82 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _buildSearchBar(),
-                ),
-                Expanded(
-                  child: products.isEmpty
-                      ? Center(child: Text('Nenhum produto encontrado.'))
-                      : ListView.builder(
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return Card(
-                              margin: EdgeInsets.all(8.0),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    product['imageUrl'] != null
-                                        ? Image.network(
-                                            product['imageUrl'],
-                                            height: 100,
-                                            width: 100,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                Icon(Icons.image_not_supported),
-                                          )
-                                        : Container(
-                                            height: 100,
-                                            width: 100,
-                                            color: Colors.grey[300],
-                                            child: Icon(Icons.image_not_supported),
-                                          ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            product['name'],
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+      body: RefreshIndicator(
+        onRefresh: () => _fetchProducts(page: 1),
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: _buildSearchBar(),
+                  ),
+                  Expanded(
+                    child: products.isEmpty
+                        ? Center(child: Text('Nenhum produto encontrado.'))
+                        : ListView.builder(
+                            itemCount: products.length,
+                            itemBuilder: (context, index) {
+                              final product = products[index];
+                              return Card(
+                                margin: EdgeInsets.all(8.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      product['imageUrl'] != null
+                                          ? Image.network(
+                                              product['imageUrl'],
+                                              height: 100,
+                                              width: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) =>
+                                                  Icon(Icons.image_not_supported),
+                                            )
+                                          : Container(
+                                              height: 100,
+                                              width: 100,
+                                              color: Colors.grey[300],
+                                              child: Icon(Icons.image_not_supported),
                                             ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(product['description']),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            'Preço: R\$ ${product['price']}',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
+                                      SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product['name'],
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
-                                          ),
-                                          Text('Estoque: ${product['stockQuantity']} unidades'),
-                                        ],
+                                            SizedBox(height: 8),
+                                            Text(product['description']),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              'Preço: R\$ ${product['price']}',
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text('Estoque: ${product['stockQuantity']} unidades'),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                _buildPaginationControls(),
-              ],
-            ),
+                              );
+                            },
+                          ),
+                  ),
+                  _buildPaginationControls(),
+                ],
+              ),
+      ),
     );
   }
 }

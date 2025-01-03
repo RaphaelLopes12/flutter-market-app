@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'filter_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   final String token;
@@ -17,14 +18,29 @@ class _ProductsScreenState extends State<ProductsScreen> {
   int _currentPage = 1;
   int _totalPages = 1;
 
+  String _searchName = '';
+  List<String> _selectedCategories = [];
+  List<String> _selectedFamilies = [];
+
+  final TextEditingController _searchController = TextEditingController();
+
   Future<void> _fetchProducts({int page = 1}) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
+      final queryParams = {
+        'page': page.toString(),
+        if (_searchName.isNotEmpty) 'name': _searchName,
+        if (_selectedCategories.isNotEmpty) 'category': _selectedCategories.join(','),
+        if (_selectedFamilies.isNotEmpty) 'family': _selectedFamilies.join(','),
+      };
+
+      final uri = Uri.http('10.0.2.2:4000', '/products', queryParams);
+
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:4000/products?page=$page'),
+        uri,
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -61,6 +77,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
     _fetchProducts();
   }
 
+  Widget _buildSearchBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Buscar por nome',
+              border: OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _searchName = '';
+                    _searchController.clear();
+                  });
+                  _fetchProducts(page: 1);
+                },
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.search),
+          onPressed: () {
+            setState(() {
+              _searchName = _searchController.text;
+            });
+            _fetchProducts(page: 1);
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildPaginationControls() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -81,11 +132,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Produtos')),
+      appBar: AppBar(
+        title: Text('Produtos'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.filter_list),
+            onPressed: () async {
+              final filters = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FilterScreen(
+                    categories: _selectedCategories,
+                    families: _selectedFamilies,
+                  ),
+                ),
+              );
+
+              if (filters != null) {
+                setState(() {
+                  _selectedCategories = filters['categories'];
+                  _selectedFamilies = filters['families'];
+                });
+                _fetchProducts(page: 1);
+              }
+            },
+          ),
+        ],
+      ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: _buildSearchBar(),
+                ),
                 Expanded(
                   child: products.isEmpty
                       ? Center(child: Text('Nenhum produto encontrado.'))
@@ -100,7 +181,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Imagem do produto
                                     product['imageUrl'] != null
                                         ? Image.network(
                                             product['imageUrl'],
@@ -117,7 +197,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                             child: Icon(Icons.image_not_supported),
                                           ),
                                     SizedBox(width: 16),
-                                    // Informações do produto
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,7 +204,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                           Text(
                                             product['name'],
                                             style: TextStyle(
-                                                fontSize: 18, fontWeight: FontWeight.bold),
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                           SizedBox(height: 8),
                                           Text(product['description']),
@@ -133,10 +214,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                           Text(
                                             'Preço: R\$ ${product['price']}',
                                             style: TextStyle(
-                                                color: Colors.green, fontWeight: FontWeight.bold),
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                          Text(
-                                              'Estoque: ${product['stockQuantity']} unidades'),
+                                          Text('Estoque: ${product['stockQuantity']} unidades'),
                                         ],
                                       ),
                                     ),
